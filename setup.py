@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(
-    name="image_explorer",
-    version="0.0.1",
-    packages=["image_explorer"],
+    name="image_inspector",
+    version="0.0.2",
+    packages=["image_inspector"],
     url="https://github.com/SEBROVATER/image_explorer",
     license="MIT",
     author="SEBROVATER",

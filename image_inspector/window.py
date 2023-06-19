@@ -11,7 +11,7 @@ class Window:
         self.width = self.original_img.shape[1]
         self.height = self.original_img.shape[0]
         self.img = image.copy()
-
+        self.properties_id = None
         self.setup_texture()
         self.setup_window()
         self.setup_image_properties()
@@ -102,7 +102,7 @@ class Window:
         self.render_image()
 
     def setup_plot(self):
-        plot_width = min(self.width, 640)
+        plot_width = 640
         plot_height = round(self.height * (plot_width / self.width))
         with dpg.plot(
             width=plot_width,

@@ -15,16 +15,13 @@ def run(images: Iterable[NDArray[np.uint8]]):
     # dpg.show_about()
     # dpg.show_item_registry()
     dpg.create_viewport(
-        title='Image Explorer',
+        title="Image Explorer",
         # width=1920, height=1080,
     )
     for img in images:
         Window(img)
 
-
-
     dpg.setup_dearpygui()
-
 
     dpg.show_viewport(maximized=False)
     dpg.start_dearpygui()

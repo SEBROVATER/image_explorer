@@ -11,7 +11,6 @@ from utils.utils import get_base_dir
 
 
 class Window:
-
     def __init__(self, image: NDArray[np.uint8]):
         self.the_most_original = image.copy()
         self.original_img = image.copy()
@@ -19,14 +18,9 @@ class Window:
         self.height = self.original_img.shape[0]
         self.img = image.copy()
 
-
-
         self.setup_texture()
         self.setup_window()
         self.setup_image_properties()
-
-
-
 
     @property
     def channels_count(self):
@@ -37,18 +31,14 @@ class Window:
         return self.original_img.shape[2] if self.original_img.ndim >= 3 else 1
 
     def setup_window(self):
-
         with dpg.window(width=1280, height=720, autosize=True) as window_id:
             with dpg.group(horizontal=True):
                 self.setup_plot()
                 with dpg.group() as properties:
                     self.properties_id = properties
 
-
-
-
     def inspect_channel_callback(self, sender, app_data, n):
-        img = self.original_img[:,:,n]
+        img = self.original_img[:, :, n]
         self.original_img = img.copy()
         self.img = img.copy()
 
@@ -58,7 +48,11 @@ class Window:
 
     def setup_image_properties(self):
         with dpg.group(horizontal=True, parent=self.properties_id):
-            dpg.add_button(label="Reset original", parent=self.properties_id, callback=self.reset_original)
+            dpg.add_button(
+                label="Reset original",
+                parent=self.properties_id,
+                callback=self.reset_original,
+            )
             if self.channels_count > 1:
                 dpg.add_button(label="BGR to RGB", callback=self.rgb)
                 dpg.add_button(label="RGB to HSV", callback=self.rgb_to_hsv)
@@ -69,18 +63,39 @@ class Window:
                     upper_thr_id = dpg.generate_uuid()
                     lower_thr_id = dpg.generate_uuid()
 
-                    dpg.add_checkbox(label=f"Enable channel", user_data=(n, lower_thr_id,upper_thr_id), default_value=True,
-                                                   callback=self.channel_checkbox)
-                    dpg.add_slider_int(label="Upper thr",  tag=upper_thr_id, user_data=(n, lower_thr_id,upper_thr_id),
-                                       min_value=0, max_value=255, default_value=255, width=255,
-                                       callback=self.thr_callback)
+                    dpg.add_checkbox(
+                        label=f"Enable channel",
+                        user_data=(n, lower_thr_id, upper_thr_id),
+                        default_value=True,
+                        callback=self.channel_checkbox,
+                    )
+                    dpg.add_slider_int(
+                        label="Upper thr",
+                        tag=upper_thr_id,
+                        user_data=(n, lower_thr_id, upper_thr_id),
+                        min_value=0,
+                        max_value=255,
+                        default_value=255,
+                        width=255,
+                        callback=self.thr_callback,
+                    )
 
-                    dpg.add_slider_int(label="Lower thr", tag=lower_thr_id, user_data=(n, lower_thr_id, upper_thr_id), width=255,
-                                       min_value=0, max_value=255, default_value=0,
-                                       callback=self.thr_callback)
+                    dpg.add_slider_int(
+                        label="Lower thr",
+                        tag=lower_thr_id,
+                        user_data=(n, lower_thr_id, upper_thr_id),
+                        width=255,
+                        min_value=0,
+                        max_value=255,
+                        default_value=0,
+                        callback=self.thr_callback,
+                    )
                     if self.channels_count > 1:
-                        dpg.add_button(label=f"Inspect separately", callback=self.inspect_channel_callback, user_data=n)
-
+                        dpg.add_button(
+                            label=f"Inspect separately",
+                            callback=self.inspect_channel_callback,
+                            user_data=n,
+                        )
 
     def rerender_properties(self):
         dpg.delete_item(self.properties_id, children_only=True)
@@ -96,24 +111,23 @@ class Window:
         plot_width = min(self.width, 640)
         plot_height = round(self.height * (plot_width / self.width))
         with dpg.plot(
-                width = plot_width,
-            height = plot_height,
-                query=False,
-                no_title=True,
-                # no_menus=True,
-                no_box_select=True,
-                crosshairs=True,
-                pan_button=dpg.mvMouseButton_Middle,
-                # query_button=dpg.mvMouseButton_Left,
+            width=plot_width,
+            height=plot_height,
+            query=False,
+            no_title=True,
+            # no_menus=True,
+            no_box_select=True,
+            crosshairs=True,
+            pan_button=dpg.mvMouseButton_Middle,
+            # query_button=dpg.mvMouseButton_Left,
         ) as plot_id:
             x_axis = dpg.add_plot_axis(dpg.mvXAxis)
-            with dpg.plot_axis(dpg.mvYAxis,
-                               invert=True
-                               ) as y_axis:
-                dpg.add_image_series(self.texture,
-                                     bounds_min=(0, self.height),
-                                     bounds_max=(self.width, 0),  # to avoid image flip
-                                     )
+            with dpg.plot_axis(dpg.mvYAxis, invert=True) as y_axis:
+                dpg.add_image_series(
+                    self.texture,
+                    bounds_min=(0, self.height),
+                    bounds_max=(self.width, 0),  # to avoid image flip
+                )
                 with dpg.item_handler_registry() as handler_id:
                     dpg.add_item_hover_handler(callback=print)
 
@@ -121,8 +135,9 @@ class Window:
         with dpg.texture_registry(show=False) as texture_registry_id:
             self.texture_registry_id = texture_registry_id
 
-            self.texture = dpg.add_dynamic_texture(width=self.width, height=self.height,
-                                                   default_value=[])
+            self.texture = dpg.add_dynamic_texture(
+                width=self.width, height=self.height, default_value=[]
+            )
         self.render_image()
 
     def render_image(self):
@@ -140,7 +155,12 @@ class Window:
                     case 2:
                         raise ValueError("Unexpected image with 2 channels")
                     case 3:
-                        img = np.dstack((self.img, np.full(self.img.shape[:2], fill_value=255, dtype=np.uint8)))
+                        img = np.dstack(
+                            (
+                                self.img,
+                                np.full(self.img.shape[:2], fill_value=255, dtype=np.uint8),
+                            )
+                        )
                         pass
                     case 4:
                         img = self.img
@@ -179,7 +199,6 @@ class Window:
         dpg.set_value(lower_thr_id, 0)
         self.thr_callback(upper_thr_id, new_value, (n, lower_thr_id, upper_thr_id))
 
-
     def rgb(self):
         if self.channels_count != 3:
             raise ValueError(f"Expected 3 channels, got {self.channels_count}")
@@ -190,7 +209,6 @@ class Window:
 
     def remove_alpha(self):
         if self.channels_count != 4:
-
             raise ValueError(f"Expected 4 channels, got {self.channels_count}")
         self.original_img = self.original_img[:, :, :3].copy()
         self.img = self.original_img.copy()
@@ -208,4 +226,3 @@ class Window:
         self.img = self.original_img.copy()
         self.rerender_properties()
         self.render_image()
-

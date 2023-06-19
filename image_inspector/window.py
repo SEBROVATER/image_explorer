@@ -102,8 +102,11 @@ class Window:
         self.render_image()
 
     def setup_plot(self):
-        plot_width = 640
+        plot_width = 720
         plot_height = round(self.height * (plot_width / self.width))
+        if plot_height > 720:
+            plot_height = 720
+            plot_width = round(self.width * (plot_height / self.height))
         with dpg.plot(
             width=plot_width,
             height=plot_height,

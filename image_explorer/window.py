@@ -1,13 +1,7 @@
-import array
-from collections import defaultdict
-from threading import Thread
-
 import cv2
+import dearpygui.dearpygui as dpg
 import numpy as np
 from numpy.typing import NDArray
-import dearpygui.dearpygui as dpg
-
-from utils.utils import get_base_dir
 
 
 class Window:

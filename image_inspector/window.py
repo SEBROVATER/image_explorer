@@ -182,10 +182,12 @@ class Window:
 
         if self.channels_count == 1:
             channel = self.original_img
-            self.img = np.where((channel < upper_thr) & (channel > lower_thr), channel, 0)
+            self.img = np.where((channel <= upper_thr) & (channel >= lower_thr), channel, 0)
         else:
             channel = self.original_img[:, :, n]
-            self.img[:, :, n] = np.where((channel < upper_thr) & (channel > lower_thr), channel, 0)
+            self.img[:, :, n] = np.where(
+                (channel <= upper_thr) & (channel >= lower_thr), channel, 0
+            )
 
         self.render_image()
 

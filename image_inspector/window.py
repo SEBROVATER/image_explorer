@@ -12,6 +12,7 @@ class Window:
         self.height = self.original_img.shape[0]
         self.img = image.copy()
         self.properties_id = None
+        self.binary_id = None
         self.setup_texture()
         self.setup_window()
         self.setup_image_properties()
@@ -51,6 +52,10 @@ class Window:
                 dpg.add_button(label="BGR to RGB", callback=self.rgb)
                 dpg.add_button(label="RGB to HSV", callback=self.rgb_to_hsv)
                 dpg.add_button(label="RGB to gray", callback=self.rgb_to_gray)
+            else:
+                self.binary_id = dpg.add_checkbox(
+                    label="As binary", default_value=False, callback=self.render_image
+                )
         with dpg.tab_bar(label="Channels", parent=self.properties_id):
             for n in range(self.channels_count):
                 with dpg.tab(label=f"Channel {n}"):
@@ -145,6 +150,9 @@ class Window:
         match self.img.ndim:
             case 2:
                 img = cv2.cvtColor(self.img, cv2.COLOR_GRAY2RGBA)
+                binary_flag = dpg.get_value(self.binary_id)
+                if binary_flag:
+                    thr, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY)
             case 3:
                 match self.img.shape[2]:
                     case 1:

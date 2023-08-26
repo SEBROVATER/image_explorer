@@ -7,7 +7,7 @@ from pathlib import Path
 @cache
 def get_base_dir():
     base_dir = Path(__file__).parent
-    while "utils" not in (p.name for p in base_dir.iterdir()):
+    while "general_utils" not in (p.name for p in base_dir.iterdir()):
         base_dir = base_dir.parent
 
     return base_dir

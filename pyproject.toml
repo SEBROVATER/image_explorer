@@ -1,0 +1,26 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "imspect"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+dynamic = ["version"]
+
+[project.scripts]
+imspect = "imspect:_imspect_script"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+python-source = "python"
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "numpy>=2.1.2",
+    "opencv-python>=4.10.0.84",
+    "pip>=24.3.1",
+]

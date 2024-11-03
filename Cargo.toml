@@ -1,0 +1,24 @@
+[package]
+name = "imspect"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "imspect"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22.5", features = ["abi3-py310"] }
+eframe = "0.29.1"
+egui = "0.29.1"
+ndarray = "0.16.1"
+ndarray-npy = "0.9.1"
+temp-dir = "0.1.14"
+kornia = "0.1.7"
+numpy = "0.22.1"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+panic = "abort"

@@ -1,19 +1,9 @@
-# See https://pre-commit.com/ for usage and config
 repos:
-  - repo: local
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.1
     hooks:
-
-      - id: black
-        args: [ "--line-length", "100" ]
-        name: black
-        stages: [ commit ]
-        language: system
-        entry: pipenv run black
-        types: [ python ]
-
-      - id: pyupgrade
-        name: pyupgrade
-        stages: [ commit ]
-        language: system
-        entry: pipenv run pyupgrade
-        types: [ python ]
+      # Run the linter.
+      - id: ruff
+        args: [ --fix ]
+      # Run the formatter.
+      - id: ruff-format

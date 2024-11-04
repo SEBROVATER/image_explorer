@@ -15,9 +15,10 @@ use std::process::{Command, Stdio};
 use std::thread;
 use std::time::Duration;
 use temp_dir::TempDir;
+use crate::imspect_app::imspection::ImageKind;
 
 /// accept kornia images
-fn imspect_kornia_images(imgs: Vec<Image<u8, 3>>) -> eframe::Result {
+fn imspect_kornia_images(imgs: Vec<ImageKind>) -> eframe::Result {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default(),
         ..Default::default()
@@ -104,7 +105,7 @@ fn _imspect_for_shell<'py>(_py: Python<'py>, imgs: &Bound<'py, PyTuple>) -> PyRe
 fn _imspect_script() -> PyResult<()> {
     let args: Vec<PathBuf> = env::args().skip(2).map(PathBuf::from).collect();
 
-    let mut imgs: Vec<Image<u8, 3>> = Vec::with_capacity(args.len());
+    let mut imgs: Vec<ImageKind> = Vec::with_capacity(args.len());
     for img_path in args.iter() {
         if img_path.extension().ok_or(PyIOError::new_err(
             "Files without extension aren't supported",
@@ -112,20 +113,36 @@ fn _imspect_script() -> PyResult<()> {
         {
             let arr: Array3<u8> =
                 read_npy(img_path).map_err(|_| PyIOError::new_err("Can't read 'npy' file"))?;
-            let (h, w, _) = arr.dim();
-            let img: Image<u8, 3> = Image::new(
-                ImageSize {
-                    width: w,
-                    height: h,
-                },
-                arr.into_raw_vec_and_offset().0,
-            )
-            .unwrap();
+            let (h, w, c) = arr.dim();
+            if c == 1 {
+                let img = ImageKind::OneChannel(Image::<u8,1>::new(
+                    ImageSize {
+                        width: w,
+                        height: h,
+                    },
+                    arr.into_raw_vec_and_offset().0,
+                )
+                    .unwrap());
+                imgs.push(img)
+            } else if c == 3 {
+                let img = ImageKind::ThreeChannel(Image::<u8,3>::new(
+                    ImageSize {
+                        width: w,
+                        height: h,
+                    },
+                    arr.into_raw_vec_and_offset().0,
+                )
+                    .unwrap());
+                imgs.push(img)
 
-            imgs.push(img)
+            } else {
+                return Err(PyTypeError::new_err("Can accept only images with 1 or 3 channels"))
+            }
+
+
         } else {
-            let img: Image<u8, 3> = read_image_any(img_path)
-                .map_err(|_| PyIOError::new_err(format!("Can't read {:?} image", &img_path)))?;
+            let img = ImageKind::ThreeChannel(read_image_any(img_path)
+                .map_err(|_| PyIOError::new_err(format!("Can't read {:?} image", &img_path)))?);
             imgs.push(img);
         }
     }

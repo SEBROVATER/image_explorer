@@ -10,7 +10,6 @@ use crate::imspect_app::textures::prepare_texture;
 #[derive(Default)]
 pub struct ImspectApp {
     imspections: Vec<SingleImspection>,
-    new_imspections: Vec<SingleImspection>,
 }
 
 impl ImspectApp {
@@ -18,12 +17,12 @@ impl ImspectApp {
     pub fn next_available_id(&self) -> usize {
 
         let mut idx = if let Some(imspection) = self.imspections.last() {
-          imspection.idx.clone().overflowing_add(1).0
+          imspection.id.clone().overflowing_add(1).0
         } else {
             return 0
         };
         let exitsting_idxes: Vec<usize> = self.imspections.iter().map(
-            | imspection | imspection.idx.clone()
+            | imspection | imspection.id.clone()
         ).collect();
 
         loop {
@@ -48,7 +47,7 @@ impl ImspectApp {
             .map(|(i, img)| SingleImspection {
                 image: img,
                 texture: None,
-                idx: i,
+                id: i,
                 need_rerender: true,
                 remove_flag: false,
                 thr: Default::default(),
@@ -57,24 +56,14 @@ impl ImspectApp {
 
         Self {
             imspections: imspections_vec,
-            new_imspections: vec![],
         }
     }
-    fn new_single_imspection_by_color_conversion(&self, idx: &usize, color: ColorSpaceChange) -> Option<SingleImspection> {
-        let new_idx = self.next_available_id();
-        if let Some(new_imspection) = self.imspections.get(*idx).unwrap().new_with_changed_color(color, new_idx) {
-            Some(new_imspection)
-        } else {
-            None
-        }
 
-
-    }
-    fn render_thresholding(&mut self, ui: &mut Ui, idx: &usize) {
-        let imsp = self.imspections.get(*idx).unwrap();
+    fn render_thresholding(&mut self, ui: &mut Ui, idx: usize) {
+        let imsp = self.imspections.get(idx).unwrap();
         if let ImageKind::OneChannel(img) = &imsp.image {
 
-            let imspection: &mut SingleImspection = self.imspections.get_mut(*idx).unwrap();
+            let imspection: &mut SingleImspection = self.imspections.get_mut(idx).unwrap();
             ui.horizontal_top(|ui| {
                 ui.heading("Threshold");
                 ui.radio_value(&mut imspection.thr.kind, Threshold::None, "None");
@@ -89,51 +78,63 @@ impl ImspectApp {
         };
     }
 
-    fn render_color_conversions(&mut self, ui: &mut Ui, idx: &usize) {
-        ui.menu_button("Change color space", |ui| {
+    fn render_color_conversions(&mut self, ui: &mut Ui, idx: usize) {
+        let mut new_imspection_to_add: Option<SingleImspection> = None;
 
-            match &self.imspections.get(*idx).unwrap().image {
-                ImageKind::OneChannel(img) => {
+        ui.menu_button("Change color space", |ui| {
+            let image = &self.imspections.get(idx).unwrap().image;
+            match &image {
+                ImageKind::OneChannel(_) => {
                     if ui.button("GRAY => RGB").clicked() {
-                        let new_imspection = self.new_single_imspection_by_color_conversion(idx, ColorSpaceChange::GRAY2RGB);
-                        if let Some(new_imsp) = new_imspection {
-                            self.imspections.push(new_imsp);
-                        }
+                        if let Some(new_imspection) = SingleImspection::new_with_changed_color(
+                            image, ColorSpaceChange::GRAY2RGB, self.next_available_id()) {
+                            new_imspection_to_add = Some(new_imspection)
+                        };
                         ui.close_menu();
                     }
-                }
-                ImageKind::ThreeChannel(img) => {
+                },
+                ImageKind::ThreeChannel(_) => {
                     if ui.button("BGR => RGB").clicked() {
-                        // TODO: convert
+                        if let Some(new_imspection) = SingleImspection::new_with_changed_color(
+                            image, ColorSpaceChange::BGR2RGB, self.next_available_id()) {
+                            new_imspection_to_add = Some(new_imspection)
+                        };
                         ui.close_menu();
-                    }
-                    if ui.button("RGB => GRAY").clicked() {
-                        // TODO: convert
+                    } else if ui.button("RGB => GRAY").clicked() {
+                        if let Some(new_imspection) = SingleImspection::new_with_changed_color(
+                            image, ColorSpaceChange::RGB2GRAY, self.next_available_id()) {
+                            new_imspection_to_add = Some(new_imspection)
+                        };
                         ui.close_menu();
-                    }
-                    if ui.button("RGB => HSV").clicked() {
-                        // TODO: convert
+                    } else if ui.button("RGB => HSV").clicked() {
+                        if let Some(new_imspection) = SingleImspection::new_with_changed_color(
+                            image, ColorSpaceChange::RGB2HSV, self.next_available_id()) {
+                            new_imspection_to_add = Some(new_imspection)
+                        };
                         ui.close_menu();
                     }
                 }
             }
         });
+        if let Some(imsp) = new_imspection_to_add {
+            self.imspections.push(imsp);
+        };
     }
     fn render_single_imspection(
         &mut self,
         ctx: &egui::Context,
         ui: &mut Ui,
-        idx: &usize,
+        idx: usize,
         outer_size: &Vec2,
     ) {
         let img_count = self.imspections.len();
         let full_width = outer_size.x;
         let full_height = outer_size.y;
 
-        // let mut new_imspection: Option<SingleImspection> = None;
+        let id = self.imspections[idx].id;
 
         egui::Resize::default()
-            .id_salt(self.next_available_id())
+            .id_salt(id)
             .default_size(Vec2::new(
                 full_width / img_count as f32 - 5.,
                 full_height - 5.,
@@ -143,11 +144,11 @@ impl ImspectApp {
                 // TODO: choose layout depending on aspect ratio
                 ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                     let inner_width = ui.available_width();
-
                     let imspection = self
                         .imspections
-                        .get_mut(*idx)
+                        .get_mut(idx)
                         .expect("single imspection struct");
+
 
                     prepare_texture(ctx, imspection);
                     if let Some(texture) = &imspection.texture {
@@ -180,7 +181,7 @@ impl ImspectApp {
 
             ui.horizontal_top(|ui| {
                 for idx in 0..img_count {
-                    self.render_single_imspection(ctx, ui, &idx, &outer_size);
+                    self.render_single_imspection(ctx, ui, idx, &outer_size);
                 }
             });
         });

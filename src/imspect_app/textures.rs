@@ -22,7 +22,7 @@ pub fn prepare_texture(ctx: &egui::Context, imspection: &mut SingleImspection) {
             texture.set(color_img, options);
         } else {
             imspection.texture =
-                Some(ctx.load_texture(format!("texture_{}", &imspection.idx), color_img, options));
+                Some(ctx.load_texture(format!("texture_{}", &imspection.id), color_img, options));
         };
     };
 }

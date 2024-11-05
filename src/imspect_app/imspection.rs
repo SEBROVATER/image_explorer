@@ -1,8 +1,8 @@
 use std::cmp::PartialEq;
+
 use eframe::epaint::TextureHandle;
 use kornia::image::{Image, ImageSize};
 use kornia::imgproc::color;
-
 
 pub enum ImageKind {
     OneChannel(Image<u8, 1>),
@@ -33,7 +33,7 @@ impl ImageKind {
 pub struct SingleImspection {
     pub image: ImageKind,
     pub texture: Option<TextureHandle>,
-    pub idx: usize,
+    pub id: usize,
     pub need_rerender: bool,
     pub remove_flag: bool,
     pub thr: ThrSettings,
@@ -42,20 +42,20 @@ pub struct SingleImspection {
 
 
 impl SingleImspection {
-    pub fn new_with_changed_color(&self, color: ColorSpaceChange, id: usize) -> Option<Self> {
-        match &self.image {
+    pub fn new_with_changed_color(image: &ImageKind, color: ColorSpaceChange, id: usize) -> Option<Self> {
+        match image {
             ImageKind::OneChannel(img) => {
                 if matches!(color, ColorSpaceChange::GRAY2RGB) {
-                    let mut new_img = Image::<f32, 3>::from_size_slice(
+                    let mut new_img = Image::<f32, 3>::from_size_val(
                         ImageSize {width: img.width(), height: img.height()},
-                        &Vec::<f32>::with_capacity(img.width() * img.height() * 3)
+                        0.
                     ).unwrap();
                     color::rgb_from_gray(&img.cast::<f32>().unwrap(), &mut new_img).unwrap();
                     let new_img = new_img.cast::<u8>().unwrap();
                     Some(SingleImspection{
                         image: ImageKind::ThreeChannel(new_img),
                         texture: None,
-                        idx: id,
+                        id: id,
                         need_rerender: true,
                         remove_flag: false,
                         thr: Default::default(),
@@ -71,15 +71,15 @@ impl SingleImspection {
                         return None
                     },
                     ColorSpaceChange::BGR2RGB => {
-                        let mut new_img = Image::<u8, 3>::from_size_slice(
+                        let mut new_img = Image::<u8, 3>::from_size_val(
                             ImageSize {width: img.width(), height: img.height()},
-                            &Vec::<u8>::with_capacity(img.width() * img.height() * 3)
+                            0
                         ).unwrap();
                         color::bgr_from_rgb(img, &mut new_img).unwrap();
                         Some(SingleImspection{
                             image: ImageKind::ThreeChannel(new_img),
                             texture: None,
-                            idx: id,
+                            id: id,
                             need_rerender: true,
                             remove_flag: false,
                             thr: Default::default(),
@@ -87,25 +87,25 @@ impl SingleImspection {
 
                     },
                     ColorSpaceChange::RGB2GRAY => {
-                        let mut new_img = Image::<f32, 1>::from_size_slice(
+                        let mut new_img = Image::<f32, 1>::from_size_val(
                             ImageSize {width: img.width(), height: img.height()},
-                            &Vec::<f32>::with_capacity(img.width() * img.height())
+                            0.
                         ).unwrap();
                         color::gray_from_rgb(&img.cast::<f32>().unwrap(), &mut new_img).unwrap();
                         let new_img = new_img.cast::<u8>().unwrap();
                         Some(SingleImspection{
                             image: ImageKind::OneChannel(new_img),
                             texture: None,
-                            idx: id,
+                            id: id,
                             need_rerender: true,
                             remove_flag: false,
                             thr: Default::default(),
                         })
                     },
                     ColorSpaceChange::RGB2HSV => {
-                        let mut new_img = Image::<f32, 3>::from_size_slice(
+                        let mut new_img = Image::<f32, 3>::from_size_val(
                             ImageSize {width: img.width(), height: img.height()},
-                            &Vec::<f32>::with_capacity(img.width() * img.height() * 3)
+                            0.
                         ).unwrap();
 
                         color::hsv_from_rgb(&img.cast::<f32>().unwrap(), &mut new_img).unwrap();
@@ -113,7 +113,7 @@ impl SingleImspection {
                         Some(SingleImspection{
                             image: ImageKind::ThreeChannel(new_img),
                             texture: None,
-                            idx: id,
+                            id: id,
                             need_rerender: true,
                             remove_flag: false,
                             thr: Default::default(),

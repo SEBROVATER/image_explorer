@@ -1,9 +1,12 @@
 use std::cmp::PartialEq;
+use std::fmt;
 
+use crate::imspect_app::textures::apply_threshold;
 use eframe::epaint::TextureHandle;
 use kornia::image::{Image, ImageError, ImageSize};
 use kornia::imgproc::color;
 
+#[derive(Clone)]
 pub enum ImageKind {
     OneChannel(Image<u8, 1>),
     ThreeChannel(Image<u8, 3>),
@@ -40,6 +43,25 @@ pub struct SingleImspection {
 }
 
 impl SingleImspection {
+    pub fn apply_threshold(&self) -> Option<ImageKind> {
+        apply_threshold(&self.image, &self.thr).map(ImageKind::OneChannel)
+    }
+    pub fn clone_with_thr(&self, id: usize) -> Self {
+        let new_img = if let Some(new_image) = self.apply_threshold() {
+            new_image
+        } else {
+            self.image.to_owned()
+        };
+        Self {
+            image: new_img,
+            texture: None,
+            id,
+            need_rerender: true,
+            remove_flag: false,
+            thr: Default::default(),
+        }
+    }
+
     pub fn new_with_took_channel(
         image: &ImageKind,
         channel_i: usize,
@@ -52,7 +74,7 @@ impl SingleImspection {
         Ok(SingleImspection {
             image: ImageKind::OneChannel(new_img),
             texture: None,
-            id: id,
+            id,
             need_rerender: true,
             remove_flag: false,
             thr: Default::default(),
@@ -78,7 +100,7 @@ impl SingleImspection {
                     Ok(SingleImspection {
                         image: ImageKind::ThreeChannel(new_img),
                         texture: None,
-                        id: id,
+                        id,
                         need_rerender: true,
                         remove_flag: false,
                         thr: Default::default(),
@@ -102,7 +124,7 @@ impl SingleImspection {
                     Ok(SingleImspection {
                         image: ImageKind::ThreeChannel(new_img),
                         texture: None,
-                        id: id,
+                        id,
                         need_rerender: true,
                         remove_flag: false,
                         thr: Default::default(),
@@ -122,7 +144,7 @@ impl SingleImspection {
                     Ok(SingleImspection {
                         image: ImageKind::OneChannel(new_img),
                         texture: None,
-                        id: id,
+                        id,
                         need_rerender: true,
                         remove_flag: false,
                         thr: Default::default(),
@@ -143,7 +165,7 @@ impl SingleImspection {
                     Ok(SingleImspection {
                         image: ImageKind::ThreeChannel(new_img),
                         texture: None,
-                        id: id,
+                        id,
                         need_rerender: true,
                         remove_flag: false,
                         thr: Default::default(),
@@ -166,7 +188,7 @@ pub struct ThrSettings {
     pub value: u8,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum Threshold {
     None,
     Binary,
@@ -176,6 +198,13 @@ pub enum Threshold {
     Truncate,
     // InRange,
 }
+
+impl fmt::Display for Threshold {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl Default for Threshold {
     fn default() -> Self {
         Self::None

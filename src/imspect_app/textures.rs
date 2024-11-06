@@ -30,7 +30,7 @@ where
     threshold_func(img, &mut new_img, value).ok()?;
     Some(new_img)
 }
-fn apply_threshold(image: &ImageKind, thr: &ThrSettings) -> Option<Image<u8, 1>> {
+pub fn apply_threshold(image: &ImageKind, thr: &ThrSettings) -> Option<Image<u8, 1>> {
     let img = match &image {
         ImageKind::OneChannel(img) => img,
         _ => return None,
@@ -65,9 +65,7 @@ pub fn prepare_texture(ctx: &egui::Context, imspection: &mut SingleImspection) {
             }
         };
 
-        let mut options = TextureOptions::default();
-        options.magnification = TextureFilter::Nearest;
-        options.minification = TextureFilter::Nearest;
+        let options = TextureOptions { magnification: TextureFilter::Nearest, minification: TextureFilter::Nearest, ..Default::default() };
 
         if let Some(texture) = &mut imspection.texture {
             texture.set(color_img, options);

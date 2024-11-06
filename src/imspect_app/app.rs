@@ -1,9 +1,11 @@
 use std::default::Default;
+use std::ops::Neg;
 
 use eframe::egui;
-use egui::load::SizedTexture;
+use eframe::emath::Vec2b;
 use egui::style::ScrollStyle;
 use egui::{Align, ComboBox, Layout, Sides, Slider, Ui, Vec2};
+use egui_plot::{Plot, PlotImage, PlotPoint};
 
 use crate::imspect_app::imspection::{ColorSpaceChange, ImageKind, SingleImspection, Threshold};
 use crate::imspect_app::textures::prepare_texture;
@@ -244,16 +246,75 @@ impl ImspectApp {
                         .get_mut(idx)
                         .expect("single imspection struct");
 
+                    let w = imspection.image.width();
+                    let h = imspection.image.height();
+
                     prepare_texture(ctx, imspection);
                     if let Some(texture) = &imspection.texture {
-                        ui.add(egui::Image::new(SizedTexture::new(
-                            texture.id(),
-                            Vec2::new(
-                                inner_width,
-                                inner_width / imspection.image.width() as f32
-                                    * imspection.image.height() as f32,
-                            ),
-                        )));
+                        Plot::new(format!("plot_{}", imspection.id))
+                            .data_aspect(1.0)
+                            .set_margin_fraction(Vec2::new(0., 0.))
+                            .width(inner_width)
+                            .height(inner_width / w as f32 * h as f32)
+                            .include_x(0.)
+                            .include_y(0.)
+                            .include_x(w as f32)
+                            .include_y(-(h as f32))
+                            .show_grid(Vec2b::new(false, false))
+                            .y_axis_formatter(|grid, _range| grid.value.neg().to_string())
+                            .label_formatter(|_name, value| {
+                                let x = value.x.trunc() as isize;
+                                let y = value.y.neg().trunc() as isize;
+                                match &imspection.image {
+                                    ImageKind::OneChannel(img) => {
+                                        if x < 0 || y < 0 {
+                                            format!("({}, {})\n", x, y)
+                                        } else if let Some(data) =
+                                            img.get([y as usize, x as usize, 0])
+                                        {
+                                            format!("[{}]\n({}, {})\n", data, x, y)
+                                        } else {
+                                            format!("({}, {})\n", x, y)
+                                        }
+                                    }
+                                    ImageKind::ThreeChannel(img) => {
+                                        let mut flag = true;
+
+                                        let mut data: Vec<&u8> =
+                                            Vec::with_capacity(img.num_channels());
+
+                                        for i in 0..img.num_channels() {
+                                            if let Some(d) = img.get([y as usize, x as usize, i]) {
+                                                data.push(d);
+                                            } else {
+                                                flag = false;
+                                            };
+                                        }
+                                        if x < 0 || y < 0 {
+                                            format!("({}, {})\n", x, y)
+                                        } else if flag {
+                                            format!("{:?}\n({}, {})\n", data, x, y)
+                                        } else {
+                                            format!("({}, {})\n", x, y)
+                                        }
+                                    }
+                                }
+                            })
+                            .show(ui, |plot_ui| {
+                                plot_ui.image(PlotImage::new(
+                                    texture.id(),
+                                    PlotPoint::new(w as f32 / 2., -(h as f32 / 2.)),
+                                    Vec2::new(w as f32, h as f32),
+                                ))
+                            });
+                        // ui.add(egui::Image::new(SizedTexture::new(
+                        //     texture.id(),
+                        //     Vec2::new(
+                        //         inner_width,
+                        //         inner_width / w as f32
+                        //             * h as f32,
+                        //     ),
+                        // )));
                     };
 
                     ui.horizontal_top(|ui| {

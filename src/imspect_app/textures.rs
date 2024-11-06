@@ -65,7 +65,11 @@ pub fn prepare_texture(ctx: &egui::Context, imspection: &mut SingleImspection) {
             }
         };
 
-        let options = TextureOptions { magnification: TextureFilter::Nearest, minification: TextureFilter::Nearest, ..Default::default() };
+        let options = TextureOptions {
+            magnification: TextureFilter::Nearest,
+            minification: TextureFilter::Nearest,
+            ..Default::default()
+        };
 
         if let Some(texture) = &mut imspection.texture {
             texture.set(color_img, options);

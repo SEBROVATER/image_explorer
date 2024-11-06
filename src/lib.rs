@@ -1,5 +1,6 @@
 mod imspect_app;
 
+use crate::imspect_app::imspection::ImageKind;
 use imspect_app::app::ImspectApp;
 use kornia::image::{Image, ImageSize};
 use kornia::io::functional::read_image_any;
@@ -15,7 +16,6 @@ use std::process::{Command, Stdio};
 use std::thread;
 use std::time::Duration;
 use temp_dir::TempDir;
-use crate::imspect_app::imspection::ImageKind;
 
 /// accept kornia images
 fn imspect_kornia_images(imgs: Vec<ImageKind>) -> eframe::Result {
@@ -115,34 +115,39 @@ fn _imspect_script() -> PyResult<()> {
                 read_npy(img_path).map_err(|_| PyIOError::new_err("Can't read 'npy' file"))?;
             let (h, w, c) = arr.dim();
             if c == 1 {
-                let img = ImageKind::OneChannel(Image::<u8,1>::new(
-                    ImageSize {
-                        width: w,
-                        height: h,
-                    },
-                    arr.into_raw_vec_and_offset().0,
-                )
-                    .unwrap());
+                let img = ImageKind::OneChannel(
+                    Image::<u8, 1>::new(
+                        ImageSize {
+                            width: w,
+                            height: h,
+                        },
+                        arr.into_raw_vec_and_offset().0,
+                    )
+                    .unwrap(),
+                );
                 imgs.push(img)
             } else if c == 3 {
-                let img = ImageKind::ThreeChannel(Image::<u8,3>::new(
-                    ImageSize {
-                        width: w,
-                        height: h,
-                    },
-                    arr.into_raw_vec_and_offset().0,
-                )
-                    .unwrap());
+                let img = ImageKind::ThreeChannel(
+                    Image::<u8, 3>::new(
+                        ImageSize {
+                            width: w,
+                            height: h,
+                        },
+                        arr.into_raw_vec_and_offset().0,
+                    )
+                    .unwrap(),
+                );
                 imgs.push(img)
-
             } else {
-                return Err(PyTypeError::new_err("Can accept only images with 1 or 3 channels"))
+                return Err(PyTypeError::new_err(
+                    "Can accept only images with 1 or 3 channels",
+                ));
             }
-
-
         } else {
-            let img = ImageKind::ThreeChannel(read_image_any(img_path)
-                .map_err(|_| PyIOError::new_err(format!("Can't read {:?} image", &img_path)))?);
+            let img =
+                ImageKind::ThreeChannel(read_image_any(img_path).map_err(|_| {
+                    PyIOError::new_err(format!("Can't read {:?} image", &img_path))
+                })?);
             imgs.push(img);
         }
     }

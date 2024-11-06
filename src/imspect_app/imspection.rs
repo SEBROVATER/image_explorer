@@ -1,7 +1,7 @@
 use std::cmp::PartialEq;
 
 use eframe::epaint::TextureHandle;
-use kornia::image::{Image, ImageSize};
+use kornia::image::{Image, ImageError, ImageSize};
 use kornia::imgproc::color;
 
 pub enum ImageKind {
@@ -39,20 +39,43 @@ pub struct SingleImspection {
     pub thr: ThrSettings,
 }
 
-
-
 impl SingleImspection {
-    pub fn new_with_changed_color(image: &ImageKind, color: ColorSpaceChange, id: usize) -> Option<Self> {
+    pub fn new_with_took_channel(
+        image: &ImageKind,
+        channel_i: usize,
+        id: usize,
+    ) -> Result<Self, ImageError> {
+        let new_img = match &image {
+            ImageKind::OneChannel(img) => img.channel(channel_i)?,
+            ImageKind::ThreeChannel(img) => img.channel(channel_i)?,
+        };
+        Ok(SingleImspection {
+            image: ImageKind::OneChannel(new_img),
+            texture: None,
+            id: id,
+            need_rerender: true,
+            remove_flag: false,
+            thr: Default::default(),
+        })
+    }
+    pub fn new_with_changed_color(
+        image: &ImageKind,
+        color: ColorSpaceChange,
+        id: usize,
+    ) -> Result<Self, ImageError> {
         match image {
             ImageKind::OneChannel(img) => {
                 if matches!(color, ColorSpaceChange::GRAY2RGB) {
                     let mut new_img = Image::<f32, 3>::from_size_val(
-                        ImageSize {width: img.width(), height: img.height()},
-                        0.
-                    ).unwrap();
-                    color::rgb_from_gray(&img.cast::<f32>().unwrap(), &mut new_img).unwrap();
-                    let new_img = new_img.cast::<u8>().unwrap();
-                    Some(SingleImspection{
+                        ImageSize {
+                            width: img.width(),
+                            height: img.height(),
+                        },
+                        0.,
+                    )?;
+                    color::rgb_from_gray(&img.cast::<f32>().unwrap(), &mut new_img)?;
+                    let new_img = new_img.cast::<u8>()?;
+                    Ok(SingleImspection {
                         image: ImageKind::ThreeChannel(new_img),
                         texture: None,
                         id: id,
@@ -60,69 +83,74 @@ impl SingleImspection {
                         remove_flag: false,
                         thr: Default::default(),
                     })
-
                 } else {
-                    return None
+                    Err(ImageError::InvalidChannelShape(3, 1))
                 }
-            },
-            ImageKind::ThreeChannel(img) => {
-                match color {
-                    ColorSpaceChange::GRAY2RGB => {
-                        return None
-                    },
-                    ColorSpaceChange::BGR2RGB => {
-                        let mut new_img = Image::<u8, 3>::from_size_val(
-                            ImageSize {width: img.width(), height: img.height()},
-                            0
-                        ).unwrap();
-                        color::bgr_from_rgb(img, &mut new_img).unwrap();
-                        Some(SingleImspection{
-                            image: ImageKind::ThreeChannel(new_img),
-                            texture: None,
-                            id: id,
-                            need_rerender: true,
-                            remove_flag: false,
-                            thr: Default::default(),
-                        })
+            }
+            ImageKind::ThreeChannel(img) => match color {
+                ColorSpaceChange::GRAY2RGB => Err(ImageError::InvalidChannelShape(1, 3)),
+                ColorSpaceChange::BGR2RGB => {
+                    let mut new_img = Image::<u8, 3>::from_size_val(
+                        ImageSize {
+                            width: img.width(),
+                            height: img.height(),
+                        },
+                        0,
+                    )
+                    .unwrap();
+                    color::bgr_from_rgb(img, &mut new_img).unwrap();
+                    Ok(SingleImspection {
+                        image: ImageKind::ThreeChannel(new_img),
+                        texture: None,
+                        id: id,
+                        need_rerender: true,
+                        remove_flag: false,
+                        thr: Default::default(),
+                    })
+                }
+                ColorSpaceChange::RGB2GRAY => {
+                    let mut new_img = Image::<f32, 1>::from_size_val(
+                        ImageSize {
+                            width: img.width(),
+                            height: img.height(),
+                        },
+                        0.,
+                    )
+                    .unwrap();
+                    color::gray_from_rgb(&img.cast::<f32>().unwrap(), &mut new_img).unwrap();
+                    let new_img = new_img.cast::<u8>().unwrap();
+                    Ok(SingleImspection {
+                        image: ImageKind::OneChannel(new_img),
+                        texture: None,
+                        id: id,
+                        need_rerender: true,
+                        remove_flag: false,
+                        thr: Default::default(),
+                    })
+                }
+                ColorSpaceChange::RGB2HSV => {
+                    let mut new_img = Image::<f32, 3>::from_size_val(
+                        ImageSize {
+                            width: img.width(),
+                            height: img.height(),
+                        },
+                        0.,
+                    )
+                    .unwrap();
 
-                    },
-                    ColorSpaceChange::RGB2GRAY => {
-                        let mut new_img = Image::<f32, 1>::from_size_val(
-                            ImageSize {width: img.width(), height: img.height()},
-                            0.
-                        ).unwrap();
-                        color::gray_from_rgb(&img.cast::<f32>().unwrap(), &mut new_img).unwrap();
-                        let new_img = new_img.cast::<u8>().unwrap();
-                        Some(SingleImspection{
-                            image: ImageKind::OneChannel(new_img),
-                            texture: None,
-                            id: id,
-                            need_rerender: true,
-                            remove_flag: false,
-                            thr: Default::default(),
-                        })
-                    },
-                    ColorSpaceChange::RGB2HSV => {
-                        let mut new_img = Image::<f32, 3>::from_size_val(
-                            ImageSize {width: img.width(), height: img.height()},
-                            0.
-                        ).unwrap();
-
-                        color::hsv_from_rgb(&img.cast::<f32>().unwrap(), &mut new_img).unwrap();
-                        let new_img = new_img.cast::<u8>().unwrap();
-                        Some(SingleImspection{
-                            image: ImageKind::ThreeChannel(new_img),
-                            texture: None,
-                            id: id,
-                            need_rerender: true,
-                            remove_flag: false,
-                            thr: Default::default(),
-                        })
-                    },
+                    color::hsv_from_rgb(&img.cast::<f32>().unwrap(), &mut new_img).unwrap();
+                    let new_img = new_img.cast::<u8>().unwrap();
+                    Ok(SingleImspection {
+                        image: ImageKind::ThreeChannel(new_img),
+                        texture: None,
+                        id: id,
+                        need_rerender: true,
+                        remove_flag: false,
+                        thr: Default::default(),
+                    })
                 }
             },
         }
-
     }
 }
 pub enum ColorSpaceChange {
@@ -136,7 +164,6 @@ pub enum ColorSpaceChange {
 pub struct ThrSettings {
     pub kind: Threshold,
     pub value: u8,
-
 }
 
 #[derive(PartialEq)]
@@ -144,8 +171,10 @@ pub enum Threshold {
     None,
     Binary,
     BinaryInv,
-
-
+    ToZero,
+    ToZeroInv,
+    Truncate,
+    // InRange,
 }
 impl Default for Threshold {
     fn default() -> Self {

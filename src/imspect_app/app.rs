@@ -1,8 +1,9 @@
 use std::default::Default;
 
 use eframe::egui;
-use egui::{Align, Layout, Slider, Ui, Vec2};
 use egui::load::SizedTexture;
+use egui::style::ScrollStyle;
+use egui::{Align, Layout, Slider, Ui, Vec2};
 
 use crate::imspect_app::imspection::{ColorSpaceChange, ImageKind, SingleImspection, Threshold};
 use crate::imspect_app::textures::prepare_texture;
@@ -13,24 +14,23 @@ pub struct ImspectApp {
 }
 
 impl ImspectApp {
-
     pub fn next_available_id(&self) -> usize {
-
         let mut idx = if let Some(imspection) = self.imspections.last() {
-          imspection.id.clone().overflowing_add(1).0
+            imspection.id.clone().overflowing_add(1).0
         } else {
-            return 0
+            return 0;
         };
-        let exitsting_idxes: Vec<usize> = self.imspections.iter().map(
-            | imspection | imspection.id.clone()
-        ).collect();
+        let exitsting_idxes: Vec<usize> = self
+            .imspections
+            .iter()
+            .map(|imspection| imspection.id.clone())
+            .collect();
 
         loop {
             if !exitsting_idxes.contains(&idx) {
-                break
+                break;
             }
             idx = idx.overflowing_add(1).0
-
         }
         idx
     }
@@ -60,20 +60,28 @@ impl ImspectApp {
     }
 
     fn render_thresholding(&mut self, ui: &mut Ui, idx: usize) {
-        let imsp = self.imspections.get(idx).unwrap();
-        if let ImageKind::OneChannel(img) = &imsp.image {
+        let imspection = self
+            .imspections
+            .get_mut(idx)
+            .expect("Imspectction by index exists");
 
-            let imspection: &mut SingleImspection = self.imspections.get_mut(idx).unwrap();
+        if let ImageKind::OneChannel(_) = &imspection.image {
             ui.horizontal_top(|ui| {
-                ui.heading("Threshold");
+                ui.label("Threshold:");
                 ui.radio_value(&mut imspection.thr.kind, Threshold::None, "None");
                 ui.radio_value(&mut imspection.thr.kind, Threshold::Binary, "Binary");
                 ui.radio_value(&mut imspection.thr.kind, Threshold::BinaryInv, "BinaryInv");
+                ui.radio_value(&mut imspection.thr.kind, Threshold::ToZero, "ToZero");
+                ui.radio_value(&mut imspection.thr.kind, Threshold::ToZeroInv, "ToZeroInv");
+                ui.radio_value(&mut imspection.thr.kind, Threshold::Truncate, "Truncate");
             });
-            if (imspection.thr.kind == Threshold::Binary) ||
-                (imspection.thr.kind == Threshold::BinaryInv) {
-                ui.add(Slider::new(&mut imspection.thr.value, 0..=255));
-                // TODO: trigger on slider value change
+            if !matches!(imspection.thr.kind, Threshold::None) {
+                if ui
+                    .add(Slider::new(&mut imspection.thr.value, 0..=255))
+                    .changed()
+                {
+                    imspection.need_rerender = true;
+                }
             };
         };
     }
@@ -86,29 +94,41 @@ impl ImspectApp {
             match &image {
                 ImageKind::OneChannel(_) => {
                     if ui.button("GRAY => RGB").clicked() {
-                        if let Some(new_imspection) = SingleImspection::new_with_changed_color(
-                            image, ColorSpaceChange::GRAY2RGB, self.next_available_id()) {
+                        if let Ok(new_imspection) = SingleImspection::new_with_changed_color(
+                            image,
+                            ColorSpaceChange::GRAY2RGB,
+                            self.next_available_id(),
+                        ) {
                             new_imspection_to_add = Some(new_imspection)
                         };
                         ui.close_menu();
                     }
-                },
+                }
                 ImageKind::ThreeChannel(_) => {
                     if ui.button("BGR => RGB").clicked() {
-                        if let Some(new_imspection) = SingleImspection::new_with_changed_color(
-                            image, ColorSpaceChange::BGR2RGB, self.next_available_id()) {
+                        if let Ok(new_imspection) = SingleImspection::new_with_changed_color(
+                            image,
+                            ColorSpaceChange::BGR2RGB,
+                            self.next_available_id(),
+                        ) {
                             new_imspection_to_add = Some(new_imspection)
                         };
                         ui.close_menu();
                     } else if ui.button("RGB => GRAY").clicked() {
-                        if let Some(new_imspection) = SingleImspection::new_with_changed_color(
-                            image, ColorSpaceChange::RGB2GRAY, self.next_available_id()) {
+                        if let Ok(new_imspection) = SingleImspection::new_with_changed_color(
+                            image,
+                            ColorSpaceChange::RGB2GRAY,
+                            self.next_available_id(),
+                        ) {
                             new_imspection_to_add = Some(new_imspection)
                         };
                         ui.close_menu();
                     } else if ui.button("RGB => HSV").clicked() {
-                        if let Some(new_imspection) = SingleImspection::new_with_changed_color(
-                            image, ColorSpaceChange::RGB2HSV, self.next_available_id()) {
+                        if let Ok(new_imspection) = SingleImspection::new_with_changed_color(
+                            image,
+                            ColorSpaceChange::RGB2HSV,
+                            self.next_available_id(),
+                        ) {
                             new_imspection_to_add = Some(new_imspection)
                         };
                         ui.close_menu();
@@ -120,6 +140,31 @@ impl ImspectApp {
             self.imspections.push(imsp);
         };
     }
+
+    fn render_take_channel(&mut self, ui: &mut Ui, idx: usize) {
+        let imspection = &self.imspections[idx];
+        let mut new_imspection: Option<SingleImspection> = None;
+
+        if let ImageKind::ThreeChannel(img) = &imspection.image {
+            ui.horizontal_top(|ui| {
+                ui.label("Take channel:");
+                for i in 0..(img.num_channels()) {
+                    if ui.small_button((i + 1).to_string()).clicked() {
+                        new_imspection = SingleImspection::new_with_took_channel(
+                            &imspection.image,
+                            i,
+                            self.next_available_id(),
+                        )
+                        .ok();
+                    };
+                }
+            });
+        };
+        if let Some(imsp) = new_imspection {
+            self.imspections.push(imsp);
+        }
+    }
+
     fn render_single_imspection(
         &mut self,
         ctx: &egui::Context,
@@ -136,7 +181,7 @@ impl ImspectApp {
         egui::Resize::default()
             .id_salt(id)
             .default_size(Vec2::new(
-                full_width / img_count as f32 - 5.,
+                (full_width / img_count as f32).max(full_width / 5.) - 5.,
                 full_height - 5.,
             ))
             .max_size(Vec2::new(full_width - 5., full_height - 2.))
@@ -148,7 +193,6 @@ impl ImspectApp {
                         .imspections
                         .get_mut(idx)
                         .expect("single imspection struct");
-
 
                     prepare_texture(ctx, imspection);
                     if let Some(texture) = &imspection.texture {
@@ -164,12 +208,14 @@ impl ImspectApp {
                     if ui.small_button("X").clicked() {
                         imspection.remove_flag = true;
                     };
-                    ui.label(format!("Channels count: {}", imspection.image.num_channels()));
+                    ui.heading(format!(
+                        "Channels count: {}",
+                        imspection.image.num_channels()
+                    ));
 
-                    self.render_thresholding(ui, idx);
                     self.render_color_conversions(ui, idx);
-
-
+                    self.render_take_channel(ui, idx);
+                    self.render_thresholding(ui, idx);
                 });
             });
     }
@@ -178,12 +224,18 @@ impl ImspectApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             let img_count = self.imspections.len();
             let outer_size = ui.available_size();
-
-            ui.horizontal_top(|ui| {
-                for idx in 0..img_count {
-                    self.render_single_imspection(ctx, ui, idx, &outer_size);
-                }
+            ctx.style_mut(|style| {
+                style.spacing.scroll = ScrollStyle::thin();
             });
+            egui::ScrollArea::both()
+                .id_salt("Main scroll area")
+                .show(ui, |ui| {
+                    ui.horizontal_top(|ui| {
+                        for idx in 0..img_count {
+                            self.render_single_imspection(ctx, ui, idx, &outer_size);
+                        }
+                    });
+                });
         });
     }
     fn remove_marked_imspections(&mut self) {

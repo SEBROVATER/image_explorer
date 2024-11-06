@@ -265,37 +265,32 @@ impl ImspectApp {
                             .label_formatter(|_name, value| {
                                 let x = value.x.trunc() as isize;
                                 let y = value.y.neg().trunc() as isize;
+
+                                // Exit early if coordinates are out of bounds
+                                if x < 0 || y < 0 {
+                                    return format!("({}, {})\n", x, y);
+                                }
+
                                 match &imspection.image {
                                     ImageKind::OneChannel(img) => {
-                                        if x < 0 || y < 0 {
-                                            format!("({}, {})\n", x, y)
-                                        } else if let Some(data) =
-                                            img.get([y as usize, x as usize, 0])
-                                        {
-                                            format!("[{}]\n({}, {})\n", data, x, y)
-                                        } else {
-                                            format!("({}, {})\n", x, y)
+                                        let data = img.get([y as usize, x as usize, 0]);
+                                        match data {
+                                            Some(d) => format!("[{}]\n({}, {})\n", d, x, y),
+                                            None => format!("({}, {})\n", x, y),
                                         }
                                     }
                                     ImageKind::ThreeChannel(img) => {
-                                        let mut flag = true;
+                                        // Collect data from all channels and ensure they're valid
+                                        let data: Option<Vec<&u8>> = (0..img.num_channels())
+                                            .map(|i| img.get([y as usize, x as usize, i]))
+                                            .collect();
 
-                                        let mut data: Vec<&u8> =
-                                            Vec::with_capacity(img.num_channels());
-
-                                        for i in 0..img.num_channels() {
-                                            if let Some(d) = img.get([y as usize, x as usize, i]) {
-                                                data.push(d);
-                                            } else {
-                                                flag = false;
-                                            };
-                                        }
-                                        if x < 0 || y < 0 {
-                                            format!("({}, {})\n", x, y)
-                                        } else if flag {
-                                            format!("{:?}\n({}, {})\n", data, x, y)
-                                        } else {
-                                            format!("({}, {})\n", x, y)
+                                        // Format based on presence of valid data
+                                        match data {
+                                            Some(values) => {
+                                                format!("{:?}\n({}, {})\n", values, x, y)
+                                            }
+                                            None => format!("({}, {})\n", x, y),
                                         }
                                     }
                                 }

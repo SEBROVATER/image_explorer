@@ -17,6 +17,7 @@ ndarray-npy = "0.9.1"
 temp-dir = "0.1.14"
 kornia = "0.1.7"
 numpy = "0.22.1"
+egui_plot = "0.29.0"
 
 [profile.release]
 codegen-units = 1

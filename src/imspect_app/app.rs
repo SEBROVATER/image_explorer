@@ -302,14 +302,6 @@ impl ImspectApp {
                                     Vec2::new(w as f32, h as f32),
                                 ))
                             });
-                        // ui.add(egui::Image::new(SizedTexture::new(
-                        //     texture.id(),
-                        //     Vec2::new(
-                        //         inner_width,
-                        //         inner_width / w as f32
-                        //             * h as f32,
-                        //     ),
-                        // )));
                     };
 
                     ui.horizontal_top(|ui| {

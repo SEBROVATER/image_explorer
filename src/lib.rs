@@ -34,6 +34,10 @@ fn imspect_kornia_images(imgs: Vec<ImageKind>) -> eframe::Result {
 #[pyfunction]
 #[pyo3(name = "imspect", signature = (* imgs))]
 fn _imspect_for_shell<'py>(_py: Python<'py>, imgs: &Bound<'py, PyTuple>) -> PyResult<()> {
+    if imgs.is_empty() {
+        println!("Provide at least one 'numpy' image");
+        return Ok(())
+    };
     let mut imgs_vec: Vec<Array3<u8>> = Vec::with_capacity(imgs.len());
 
     for img in imgs.iter() {
@@ -95,7 +99,7 @@ fn _imspect_for_shell<'py>(_py: Python<'py>, imgs: &Bound<'py, PyTuple>) -> PyRe
         Ok(_) => Ok(()),
     };
 
-    thread::sleep(Duration::from_millis(500));
+    thread::sleep(Duration::from_millis(500)); // give time to read images
 
     status
 }
@@ -104,6 +108,11 @@ fn _imspect_for_shell<'py>(_py: Python<'py>, imgs: &Bound<'py, PyTuple>) -> PyRe
 #[pyfunction]
 fn _imspect_script() -> PyResult<()> {
     let args: Vec<PathBuf> = env::args().skip(2).map(PathBuf::from).collect();
+
+    if args.is_empty() {
+        println!("Provide at least one image path");
+        return Ok(())
+    };
 
     let mut imgs: Vec<ImageKind> = Vec::with_capacity(args.len());
     for img_path in args.iter() {

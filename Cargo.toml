@@ -9,7 +9,7 @@ name = "imspect"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.22.5", features = ["abi3-py310"] }
+pyo3 = { version = "0.22.5", features = ["abi3-py38"] }
 eframe = "0.29.1"
 egui = "0.29.1"
 ndarray = "0.16.1"

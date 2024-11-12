@@ -178,3 +178,5 @@ Cargo.lock
 *.pdb
 *.png
 *.npy
+rs_target/
+py_target/

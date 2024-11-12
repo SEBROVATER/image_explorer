@@ -9,6 +9,7 @@ repository = "https://github.com/SEBROVATER/imspect"
 readme = "README.md"
 categories = ["computer-vision", "command-line-utilities"]
 keywords = ["images", "cv", "gui"]
+exclude = ["src/lib.rs", "py*", "*.py", "*.yaml", ".gitignore"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]

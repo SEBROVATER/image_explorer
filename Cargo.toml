@@ -1,7 +1,14 @@
 [package]
 name = "imspect"
+description = "Explore features of images during debug session"
+authors = ["Sebrovskiy Konstantin", "sebrovskiy.k@gmail.com"]
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/SEBROVATER/imspect"
+readme = "README.md"
+categories = ["computer-vision", "command-line-utilities"]
+keywords = ["images", "cv", "gui"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]

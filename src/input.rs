@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use anyhow::Context;
+use std::path::PathBuf;
 
 use kornia::image::{Image, ImageError, ImageSize};
 use kornia::io::functional::read_image_any;
@@ -26,7 +26,10 @@ pub fn load_images(args: Vec<PathBuf>) -> Result<Vec<ImageKind>, anyhow::Error> 
             let (h, w, c) = arr.dim();
 
             // Match the channel count to determine image type
-            let image_size = ImageSize { width: w, height: h };
+            let image_size = ImageSize {
+                width: w,
+                height: h,
+            };
             let data = arr.into_raw_vec_and_offset().0;
 
             let img = match c {
@@ -37,8 +40,10 @@ pub fn load_images(args: Vec<PathBuf>) -> Result<Vec<ImageKind>, anyhow::Error> 
             imgs.push(img);
         } else {
             // Handle non-.npy file
-            let img = ImageKind::ThreeChannel(read_image_any(img_path)
-                .with_context(|| format!("Failed to read image file: {:?}", img_path))?);
+            let img = ImageKind::ThreeChannel(
+                read_image_any(img_path)
+                    .with_context(|| format!("Failed to read image file: {:?}", img_path))?,
+            );
             imgs.push(img);
         }
     }

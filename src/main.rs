@@ -16,8 +16,8 @@ fn main() -> eframe::Result<()> {
         return Ok(());
     };
 
-    if let Ok(imgs) = load_images(args){
-        return imspect_kornia_images(imgs)
+    if let Ok(imgs) = load_images(args) {
+        return imspect_kornia_images(imgs);
     };
     Ok(())
 }

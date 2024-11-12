@@ -15,7 +15,6 @@ use temp_dir::TempDir;
 use imspect_app::run::imspect_kornia_images;
 use input::load_images;
 
-
 mod imspect_app;
 mod input;
 
@@ -25,7 +24,7 @@ mod input;
 fn _imspect_for_shell<'py>(_py: Python<'py>, imgs: &Bound<'py, PyTuple>) -> PyResult<()> {
     if imgs.is_empty() {
         println!("Provide at least one 'numpy' image");
-        return Ok(())
+        return Ok(());
     };
     let mut imgs_vec: Vec<Array3<u8>> = Vec::with_capacity(imgs.len());
 

@@ -18,6 +18,7 @@ temp-dir = "0.1.14"
 kornia = "0.1.7"
 numpy = "0.22.1"
 egui_plot = "0.29.0"
+anyhow = "1.0.93"
 
 [profile.release]
 codegen-units = 1

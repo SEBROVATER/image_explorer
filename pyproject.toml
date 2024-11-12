@@ -4,12 +4,21 @@ build-backend = "maturin"
 
 [project]
 name = "imspect"
-requires-python = ">=3.10"
+description = "Explore features of images during debug session"
+authors = [
+    { name = "SEBROVATER", email = "sebrovskiy.k@gmail.com" },
+]
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
 ]
+readme = "README.md"
+license = {text = "MIT"}
 dynamic = ["version"]
+
+[project.urls]
+github = "https://github.com/SEBROVATER/imspect"
 
 [project.scripts]
 imspect = "imspect:_imspect_script"

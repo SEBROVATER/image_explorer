@@ -11,6 +11,7 @@ A small GUI application for feature engineering in computer vision projects.
 
 ## Demo
 
+[imspect720.webm](https://github.com/user-attachments/assets/bc832470-941b-4e48-9f3d-e7039b3e998b)
 
 ## Install
 `pip install imspect` for Python devs

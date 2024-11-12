@@ -8,6 +8,7 @@ A small GUI application for feature engineering in computer vision projects.
  (common data type for `OpenCV`).
 - The command line executable accepts the classic image formats
   and additionally the **.npy** format (serialized `numpy` arrays).
+- Works with Python 3.8+.
 
 ## Demo
 

@@ -1,34 +1,23 @@
-mod imspect_app;
-
-use crate::imspect_app::imspection::ImageKind;
-use imspect_app::app::ImspectApp;
-use kornia::image::{Image, ImageSize};
-use kornia::io::functional::read_image_any;
-use ndarray::{Array3, Axis, Ix3};
-use ndarray_npy::{read_npy, write_npy};
-use numpy::{PyReadonlyArrayDyn, PyUntypedArrayMethods};
-use pyo3::exceptions::{PyIOError, PyRuntimeError, PyTypeError, PyValueError};
-use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 use std::env;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::thread;
 use std::time::Duration;
+
+use ndarray::{Array3, Axis, Ix3};
+use ndarray_npy::write_npy;
+use numpy::{PyReadonlyArrayDyn, PyUntypedArrayMethods};
+use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
+use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 use temp_dir::TempDir;
 
-/// accept kornia images
-fn imspect_kornia_images(imgs: Vec<ImageKind>) -> eframe::Result {
-    let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default(),
-        ..Default::default()
-    };
-    eframe::run_native(
-        "imspect",
-        native_options,
-        Box::new(|cc| Ok(Box::new(ImspectApp::new(cc, imgs)))),
-    )
-}
+use imspect_app::run::imspect_kornia_images;
+use input::load_images;
+
+
+mod imspect_app;
+mod input;
 
 /// to run in a python shell
 #[pyfunction]
@@ -111,59 +100,16 @@ fn _imspect_script() -> PyResult<()> {
 
     if args.is_empty() {
         println!("Provide at least one image path");
-        return Ok(())
+        return Ok(());
     };
 
-    let mut imgs: Vec<ImageKind> = Vec::with_capacity(args.len());
-    for img_path in args.iter() {
-        if img_path.extension().ok_or(PyIOError::new_err(
-            "Files without extension aren't supported",
-        ))? == "npy"
-        {
-            let arr: Array3<u8> =
-                read_npy(img_path).map_err(|_| PyIOError::new_err("Can't read 'npy' file"))?;
-            let (h, w, c) = arr.dim();
-            if c == 1 {
-                let img = ImageKind::OneChannel(
-                    Image::<u8, 1>::new(
-                        ImageSize {
-                            width: w,
-                            height: h,
-                        },
-                        arr.into_raw_vec_and_offset().0,
-                    )
-                    .unwrap(),
-                );
-                imgs.push(img)
-            } else if c == 3 {
-                let img = ImageKind::ThreeChannel(
-                    Image::<u8, 3>::new(
-                        ImageSize {
-                            width: w,
-                            height: h,
-                        },
-                        arr.into_raw_vec_and_offset().0,
-                    )
-                    .unwrap(),
-                );
-                imgs.push(img)
-            } else {
-                return Err(PyTypeError::new_err(
-                    "Can accept only images with 1 or 3 channels",
-                ));
-            }
-        } else {
-            let img =
-                ImageKind::ThreeChannel(read_image_any(img_path).map_err(|_| {
-                    PyIOError::new_err(format!("Can't read {:?} image", &img_path))
-                })?);
-            imgs.push(img);
-        }
+    match load_images(args) {
+        Ok(imgs) => match imspect_kornia_images(imgs) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(PyRuntimeError::new_err(err.to_string())),
+        },
+        Err(err) => Err(PyRuntimeError::new_err(err.to_string())),
     }
-    if let Err(err) = imspect_kornia_images(imgs) {
-        return Err(PyRuntimeError::new_err(err.to_string()));
-    };
-    Ok(())
 }
 
 /// A Python module implemented in Rust.

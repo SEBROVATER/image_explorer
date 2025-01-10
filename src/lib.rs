@@ -74,6 +74,7 @@ fn _imspect_for_shell<'py>(_py: Python<'py>, imgs: &Bound<'py, PyTuple>) -> PyRe
         img_paths.push(f);
     }
 
+    let path = "imspect";
     let status = match Command::new("imspect")
         .args(&img_paths)
         .stdin(Stdio::null())
@@ -82,7 +83,7 @@ fn _imspect_for_shell<'py>(_py: Python<'py>, imgs: &Bound<'py, PyTuple>) -> PyRe
         .spawn()
     {
         Err(_) => Err(PyRuntimeError::new_err(
-            "Can't find 'imspect' script to run",
+            format!("Can't find '{}' script to run", path),
         )),
         Ok(_) => Ok(()),
     };
